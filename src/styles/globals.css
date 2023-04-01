@@ -95,6 +95,10 @@ body {
     rgb(var(--background-start-rgb));
 }
 
+th {
+  cursor: pointer;
+}
+
 a {
   color: inherit;
   text-decoration: none;

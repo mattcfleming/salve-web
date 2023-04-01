@@ -3,6 +3,8 @@ import styles from "@/styles/Home.module.css";
 import { Clinic, Patient } from "@/types";
 import { useCallback, useEffect, useState } from "react";
 
+const API_URI = process.env.API_HOST;
+
 export default function Home() {
   const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
   const [clinics, setClinics] = useState<Clinic[]>([]);
@@ -12,7 +14,7 @@ export default function Home() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`http://localhost:3001/api/clinics`)
+    fetch(`${API_URI}/api/clinics`)
       .then((res) => res.json())
       .then((data) => {
         setClinics(data);
@@ -28,7 +30,7 @@ export default function Home() {
   useEffect(() => {
     if (selectedClinic) {
       setLoading(true);
-      fetch(`http://localhost:3001/api/patients/${selectedClinic.id}`)
+      fetch(`${API_URI}/api/patients/${selectedClinic.id}`)
         .then((res) => res.json())
         .then((data) => {
           setLoading(false);
@@ -80,8 +82,6 @@ export default function Home() {
       </div>
     );
   }
-
-  console.log(clinics);
 
   return (
     <>
