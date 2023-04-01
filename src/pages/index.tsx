@@ -1,10 +1,12 @@
 import Head from "next/head";
 import styles from "@/styles/Home.module.css";
-import { Clinic } from "@/types";
-import { useEffect, useState } from "react";
+import { Clinic, Patient } from "@/types";
+import { useCallback, useEffect, useState } from "react";
 
 export default function Home() {
+  const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
   const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -23,12 +25,60 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (selectedClinic) {
+      setLoading(true);
+      fetch(`http://localhost:3001/api/patients/${selectedClinic.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setLoading(false);
+          setPatients(data);
+        })
+        .catch((err) => {
+          setError(`Error fetching selectedClinic patient. ${err.message}`);
+          setLoading(false);
+        });
+    }
+  }, [selectedClinic]);
+
+  const handleClinicSelect = useCallback(
+    (clinic: Clinic["name"]) => {
+      const clinicId = clinics.find((c) => c.name === clinic);
+      setSelectedClinic(clinicId as Clinic);
+    },
+    [clinics]
+  );
+
+  const handleSort = useCallback((field: keyof Patient) => {
+    if (
+      !["id", "clinic_id", "first_name", "last_name", "date_of_birth"].includes(
+        field
+      )
+    ) {
+      throw new Error(`Invalid field: ${field}`);
+    }
+    setPatients((prevPatients) => {
+      const sortedPatients = [...prevPatients].sort((a, b) =>
+        a[field] > b[field] ? 1 : a[field] < b[field] ? -1 : 0
+      );
+      return sortedPatients;
+    });
+  }, []);
+
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className={styles.main}>
+        <h1 className={styles.title}>Loading ...</h1>
+      </div>
+    );
   }
 
   if (error) {
-    return <div>{error}</div>;
+    return (
+      <div className={styles.main}>
+        <h1 className={styles.title}>{error}</h1>
+      </div>
+    );
   }
 
   console.log(clinics);
@@ -41,7 +91,51 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={styles.main}></main>
+      <main className={styles.main}>
+        <h1 className={styles.title}>Patient List</h1>
+        <div>
+          <select
+            value={selectedClinic?.name}
+            onChange={(e) => {
+              handleClinicSelect(JSON.parse(e.target.value));
+            }}
+          >
+            <option value="">Select a clinic</option>
+            {clinics.map((clinic) => (
+              <option key={clinic.id} value={JSON.stringify(clinic.name)}>
+                {clinic.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        {selectedClinic && (
+          <div>
+            <h2>{selectedClinic.name}</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th onClick={() => handleSort("id")}>ID</th>
+                  <th onClick={() => handleSort("first_name")}>First Name</th>
+                  <th onClick={() => handleSort("last_name")}>Last Name</th>
+                  <th onClick={() => handleSort("date_of_birth")}>
+                    Date of Birth
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {patients.map((patient) => (
+                  <tr key={patient.id}>
+                    <td>{patient.id}</td>
+                    <td>{patient.first_name}</td>
+                    <td>{patient.last_name}</td>
+                    <td>{patient.date_of_birth}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </main>
     </>
   );
 }
